@@ -30,9 +30,7 @@ def fill_data_store_with_kind_and_case(kind, case):
 @step("Fill data store with chart <chart> and suites <suites>")
 def fill_data_store_with_chart_and_suites(chart, suites):
     data_store.scenario.chart = chart
-    s = list()
-    if not suites == "":
-        s = suites.split(',')
+    s = suites.split(',') if suites != "" else []
     s.append("basic")
     data_store.scenario.suites = s
 
@@ -40,9 +38,7 @@ def fill_data_store_with_chart_and_suites(chart, suites):
 def fill_data_store_with_case_chart_suites(case, chart, suites):
     data_store.scenario.case = case.lower()
     data_store.scenario.chart = chart
-    s = list()
-    if not suites == "":
-        s = suites.split(',')
+    s = suites.split(',') if suites != "" else []
     s.append("basic")
     data_store.scenario.suites = s
 
@@ -74,7 +70,6 @@ def copy_the_test_chart_folders_to(case, chart):
     except Exception as e:
         print("Oops!", e.__str__, "occurred.")
         assert False
-    assert True
 
 @step("Copy the suites source folders to test execution folder")
 def copy_the_test_suites_source_folders_to_TEST_EXECUTION_FOLDER():
@@ -84,7 +79,10 @@ def copy_the_test_suites_source_folders_to_TEST_EXECUTION_FOLDER():
 @step("Copy the suite source folder for case <case> and chart <chart> and suite <suite> to test execution folder")
 def copy_the_suite_source_folder_for_case_and_chart_and_suite_to_TEST_EXECUTION_FOLDER(case, chart, suite):
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    src_path = os.path.join(dir_path,'./../sources/cases/',suite, suite + '.values.hull.yaml')
+    src_path = os.path.join(
+        dir_path, './../sources/cases/', suite, f'{suite}.values.hull.yaml'
+    )
+
     dst_path = os.path.join(dir_path, TEST_EXECUTION_FOLDER, 'case', case, 'chart', chart)
     try:
         with open(src_path, 'r') as file:
@@ -92,14 +90,11 @@ def copy_the_suite_source_folder_for_case_and_chart_and_suite_to_TEST_EXECUTION_
             data = data.replace("<OBJECT_TYPE>",case)
             if not os.path.isdir(dst_path):
                 os.makedirs(dst_path)
-            dst_file = open(os.path.join(dst_path, suite + ".values.hull.yaml"), "w")
-            dst_file.write(data)
-            dst_file.close()
-            
+            with open(os.path.join(dst_path, f"{suite}.values.hull.yaml"), "w") as dst_file:
+                dst_file.write(data)
     except Exception as e:
         print("Oops!", e.__str__, "occurred.")
         assert False
-    assert True
 
 
 @step("Clean the test execution folder")
@@ -107,8 +102,7 @@ def delete_the_TEST_EXECUTION_FOLDER():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     dst_path = os.path.join(dir_path, TEST_EXECUTION_FOLDER, "case", data_store.scenario.case)
     if os.path.isdir(dst_path):
-        shutil.rmtree(dst_path, ignore_errors=True)
-    assert True    
+        shutil.rmtree(dst_path, ignore_errors=True)    
 
 @step("Copy the HULL chart files to test execution folder")
 def copy_the_hull_chart_files_to_test_execution_folder():
@@ -131,8 +125,7 @@ def copy_the_hull_chart_files_to_test_object_in_chart(case, chart):
         copytree(os.path.join(hull_path, "templates"), os.path.join(dst_path, "templates"))
     except Exception as e:
         print("Oops!", e.__str__, "occurred.")
-        assert False
-    assert True    
+        assert False    
 
 @step("Fail to render the templates for values file <values_file> to test execution folder because error contains <expected_error>")
 def fail_to_render_the_templates_for_values_file_to_TEST_EXECUTION_FOLDER_because_error_contains(values_file, expected_error):
@@ -141,10 +134,10 @@ def fail_to_render_the_templates_for_values_file_to_TEST_EXECUTION_FOLDER_becaus
 @step("Fail to render the templates for test case <case> and chart <chart> and values file <values_file> to test execution folder because error contains <expected_error>")
 def fail_to_render_the_templates_for_test_case_and_chart_and_values_file(case, chart, values_file, expected_error):
     result = render_chart(case, chart, values_file)
-    if result.returncode != 0 and expected_error in str(result.stdout):
-        assert True
-    else:
-        assert False, "With ExitCode " + str(result.returncode) + ", expected error " + expected_error + " not found in STDOUT: " + str(result.stdout)
+    if result.returncode == 0 or expected_error not in str(result.stdout):
+        assert (
+            False
+        ), f"With ExitCode {str(result.returncode)}, expected error {expected_error} not found in STDOUT: {str(result.stdout)}"
 
 @step("Render the templates for values file <values_file> to test execution folder")
 def render_the_templates_for_values_file_to_TEST_EXECUTION_FOLDER(values_file):
@@ -154,7 +147,13 @@ def render_the_templates_for_values_file_to_TEST_EXECUTION_FOLDER(values_file):
     #    with open(render_path) as reader:
     #        for line in reader.readlines():
     #            Messages.write_message(line)
-    assert result.returncode == 0, "With ExitCode " + str(result.returncode) + " STDOUT was:\n\n" + str(result.stdout) + "\n\n and STDERR\n\n: " + str(result.stderr)
+    assert result.returncode == 0, (
+        f"With ExitCode {str(result.returncode)}"
+        + " STDOUT was:\n\n"
+        + str(result.stdout)
+        + "\n\n and STDERR\n\n: "
+        + str(result.stderr)
+    )
 
 
 
@@ -164,8 +163,8 @@ def fill_data_store_with_rendered_objects():
 
 @step("Expected number of <count> objects of kind <kind> were rendered")
 def check_that_expected_number_of_objects_of_kind_was_rendered(count, kind):
-    found = len(data_store.scenario["objects_" + kind])
-    assert int(count) == found, "Expected " + str(count) + " but found " + str(found)
+    found = len(data_store.scenario[f"objects_{kind}"])
+    assert int(count) == found, f"Expected {str(count)} but found {found}"
 
 @step("Expected number of <count> objects were rendered")
 def check_that_expected_number_of_objects_was_rendered(count):
@@ -173,19 +172,20 @@ def check_that_expected_number_of_objects_was_rendered(count):
 
 @step("Set test object to <name> of kind <kind>")
 def set_test_object_to_of_kind(name, kind):
-    data_store.scenario.test_object = data_store.scenario["objects_" + kind][name]    
+    data_store.scenario.test_object = data_store.scenario[f"objects_{kind}"][name]    
 
 @step("Set test object to <name>")
 def set_test_object_to(name):
-    data_store.scenario.test_object = data_store.scenario["objects_" + data_store.scenario.kind][name]    
+    data_store.scenario.test_object = data_store.scenario[
+        f"objects_{data_store.scenario.kind}"
+    ][name]    
 
 @step("Test object <name> of kind <kind> does not exist")
 def test_object_of_kind_does_not_exist(name, kind):
     try:
-        data_store.scenario["objects_" + kind][name]
+        data_store.scenario[f"objects_{kind}"][name]
     except Exception as e:
         if e.__class__.__name__ == 'KeyError':
-            assert True
             return
     assert False
 
@@ -229,10 +229,9 @@ def test_object_does_not_have_key(key):
     assert "test_object" in data_store.scenario != None, "No Test Object set!"
     assert data_store.scenario.test_object != None, "Test Object set to None!"
     try:
-        data_store.scenario.test_object[key]        
+        data_store.scenario.test_object[key]
     except Exception as e:       
         if e.__class__.__name__ == 'KeyError':
-            assert True
             return
     assert False
 
@@ -262,28 +261,28 @@ def test_object_has_key_with_value_of_key_from_scenario_data_store(key, scenario
     
 @step("All test objects have key <key> with value <value>")
 def all_test_objects_have_key_with_value(key, value):
-    test_objects = data_store.scenario["objects_" + data_store.scenario.kind]
+    test_objects = data_store.scenario[f"objects_{data_store.scenario.kind}"]
     for i in test_objects:
         set_test_object_to(i)
         test_object_has_key_with_value(key, value)
 
 @step("All test objects have key <key> with value matching regex <regex>")
 def all_test_objects_have_key_with_value_matching_regex(key, regex):
-    test_objects = data_store.scenario["objects_" + data_store.scenario.kind]
+    test_objects = data_store.scenario[f"objects_{data_store.scenario.kind}"]
     for i in test_objects:
         set_test_object_to(i)
         test_object_has_key_with_value_matching_regex(key, regex)
         
 @step("All test objects have key <key> with value of key <scenario_key> from scenario data_store")
 def all_test_objects_have_key_with_value_of_key_from_data_store(key, scenario_key):
-    test_objects = data_store.scenario["objects_" + data_store.scenario.kind]
+    test_objects = data_store.scenario[f"objects_{data_store.scenario.kind}"]
     for i in test_objects:
         set_test_object_to(i)
         test_object_has_key_with_value_of_key_from_scenario_data_store(key, scenario_key)
 
 @step("All test objects have key <key> with Base64 encoded value of <value>")
 def all_test_objects_have_key_with_base64_value(key, value):
-    test_objects = data_store.scenario["objects_" + data_store.scenario.kind]
+    test_objects = data_store.scenario[f"objects_{data_store.scenario.kind}"]
     for i in test_objects:
         set_test_object_to(i)
         test_object_has_key_with_base64_encoded_value(key, value)
@@ -301,10 +300,11 @@ def fail_to_validate(expected_error):
     except Exception as e:
         if expected_error in str(e.__str__):
             print(f'Found expected message:\n\'{expected_error}\'\nin  exception message:\n\'{str(e.__str__)}\'')
-            assert True
             return
         else:
-            assert False, "Expected error " + expected_error + " not found in Exception message: " + str(e.__str__)
+            assert (
+                False
+            ), f"Expected error {expected_error} not found in Exception message: {str(e.__str__)}"
 
 @step("Validate test object against JSON Schema")
 def validate_test_object_against_json_schema(test_object):
@@ -317,16 +317,16 @@ def assert_values_equal(actual, expected, key=None):
     assert expected == actual, "For key '"+ key + "' there was expected value:\n\n" + str(expected) + "\n\nbut found:\n\n" + str(actual) + "\n\n"
 
 def validateJson(test_object):
-    
+
     schema_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "./../schema")
     schema_version_split = str(test_object["apiVersion"]).split("/")
     schema_version = schema_version_split[0].split(".")[0]
     if len(schema_version_split) > 1:
-        schema_version = schema_version + "-" + schema_version_split[1]
+        schema_version = f"{schema_version}-{schema_version_split[1]}"
     schema_file = os.path.join(schema_dir, str(test_object["kind"]).lower().split(".")[0] + "-" + schema_version + ".json")
     if not os.path.exists(schema_file):
         schema_file = os.path.join(schema_dir, str(test_object["kind"]).lower().split(".")[0] + "-core-" + schema_version + ".json")
-        
+
     with open(os.path.join(schema_dir, schema_file)) as json_file:
         schema = json.load(json_file)
 
@@ -340,16 +340,16 @@ def render_chart(case, chart, values_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     chart_path = os.path.join(dir_path, TEST_EXECUTION_FOLDER, 'case', case, 'chart', chart)
     render_path = os.path.join(dir_path, TEST_EXECUTION_FOLDER, 'case', case, 'rendered')
-    
+
     if not os.path.isdir(render_path):
         os.makedirs(render_path)
-    
+
     suites = ()
     for suite in data_store.scenario.suites:
-        suites += ("-f", os.path.join(chart_path, suite + ".values.hull.yaml"))
-    
+        suites += ("-f", os.path.join(chart_path, f"{suite}.values.hull.yaml"))
+
     args = ("helm", "template", chart_path, "--name-template", "release-name", "--debug", "--output-dir", render_path) + suites + ("-f",  os.path.join(chart_path, values_file))
-    
+
     popen = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     print('STDOUT:\n', popen.stdout.decode("utf-8").replace("\n",os.linesep))
     print('STDERR:\n', popen.stderr.decode("utf-8").replace("\n",os.linesep) if popen.stderr is not None else "")
@@ -363,9 +363,8 @@ def copytree(src, dst, symlinks=False, ignore=None):
         d = os.path.join(dst, item)
         if os.path.isdir(s):
             copytree(s, d, symlinks, ignore)
-        else:
-            if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
-                shutil.copy2(s, d)
+        elif not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
+            shutil.copy2(s, d)
 
 def copyfile(src_dir, src_filename, dst_dir):
     if not os.path.isdir(dst_dir):
@@ -380,23 +379,23 @@ def get_objects(case, chart):
     items = []
     for file in os.listdir(rendered_files_folder):
         with open(os.path.join(rendered_files_folder, file), encoding='utf-8') as file_in:
-            
+
             item = None
             itemIndex = -1
             for line in file_in:
                 if line.startswith("---"):
                     items.append([])
                 items[itemIndex].append(line)
-        
+
         data_store.scenario.objects = []
         for key in list(data_store.scenario.keys()):
             if key.startswith("objects_"):
-                data_store.scenario[key] = dict()
-            
+                data_store.scenario[key] = {}
+
         for i in items:
-            
+
             item = Dotty(yaml.safe_load("".join(i)), separator='§')
             data_store.scenario.objects.append(item)
-            if not ("objects_" + item['kind']) in data_store.scenario:
-                data_store.scenario["objects_" + item['kind']] = dict()
+            if "objects_" + item['kind'] not in data_store.scenario:
+                data_store.scenario["objects_" + item['kind']] = {}
             data_store.scenario["objects_" + item['kind']][item['metadata§name']] = item
